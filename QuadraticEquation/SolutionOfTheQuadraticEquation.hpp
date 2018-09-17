@@ -24,6 +24,7 @@ void SolveSquare(double a, double b, double c, double *x1, double *x2, size_t *n
   assert(n_roots != nullptr);
 
   // При a = 0 осстается линейное уравнение b*x + c = 0
+  /* common, a is a double number, would you mind to do a favor to compare it appropriately? (hint: with epsilon */
   if (a == 0) {
     if (b != 0) {
       *x1 = (-c) / b;
