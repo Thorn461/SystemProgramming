@@ -2,6 +2,12 @@
 #include <cmath>
 #include <iostream>
 
+#define epsilon 0.0000001
+
+bool IsEqual(double x1, double x2) {
+  return (std::abs(x1 -x2) < epsilon);
+}
+
 /**
  * @function SolveSquare(double a, double b, double c, double *x1, double *x2, size_t *n_roots)
  * @brief Функция для решения квадратных уравнений вида a*x^2 + b*x + c = 0
@@ -13,7 +19,7 @@
  * @param [out] n_roots - указатель на количество корней
  * @note Если n_roots равен 3, то это значит, что уравнение имеет бесконечно много корней
  */
-void SolveSquare(double a, double b, double c, double *x1, double *x2, size_t *n_roots) {
+size_t SolveSquare(double a, double b, double c, double *x1, double *x2) {
 
   assert(std::isfinite (a));
   assert(std::isfinite (b));
@@ -21,23 +27,18 @@ void SolveSquare(double a, double b, double c, double *x1, double *x2, size_t *n
 
   assert(x1 != nullptr);
   assert(x2 != nullptr);
-  assert(n_roots != nullptr);
 
   // При a = 0 осстается линейное уравнение b*x + c = 0
-  /* common, a is a double number, would you mind to do a favor to compare it appropriately? (hint: with epsilon */
-  if (a == 0) {
-    if (b != 0) {
+  if ( IsEqual(a, 0) ) {
+    if ( !IsEqual(b, 0) ) {
       *x1 = (-c) / b;
-      *n_roots = 1;
-      return;
+      return 1;
     } else {
-      if ( c == 0 ) {
-        *n_roots = 3;
-        return;
+      if ( IsEqual(c, 0) ) {
+        return 3;
       } else {
         /// Уравнение c = 0 при c <> 0 не имеет решения
-        *n_roots = 0;
-        return;
+        return 0;
       }
     }
   }
@@ -46,21 +47,19 @@ void SolveSquare(double a, double b, double c, double *x1, double *x2, size_t *n
 
   // D < 0 => корней нет
   if (D < 0) {
-    *n_roots = 0;
-    return;
+    return 0;
   }
 
   // D = 0 => 1 корень второй кратности
-  if (D == 0) {
+  if ( IsEqual(D, 0) ) {
     *x1 = (-b) / (2 * a);
-    *n_roots = 1;
-    return;
+    return 1;
   }
 
   // D > 0 => 2 корня
   *x1 = (-b - sqrt(D)) / (2 * a);
   *x2 = (-b + sqrt(D)) / (2 * a);
-  *n_roots = 2;
+  return 2;
 }
 
 void unit_test() {
@@ -69,27 +68,27 @@ void unit_test() {
   a = 1;
   b = 3;
   c = 2;
-  SolveSquare(a, b, c, &x1, &x2, &n_roots);
+  n_roots = SolveSquare(a, b, c, &x1, &x2);
   assert( n_roots == 2 && x1 == -2 && x2 == -1);
   a = 0;
   b = 0;
   c = 0;
-  SolveSquare(a, b, c, &x1, &x2, &n_roots);
+  n_roots = SolveSquare(a, b, c, &x1, &x2);
   assert( n_roots == 3 );
   a = 0;
   b = 0;
   c = 1;
-  SolveSquare(a, b, c, &x1, &x2, &n_roots);
+  n_roots = SolveSquare(a, b, c, &x1, &x2);
   assert( n_roots == 0 );
   a = 1;
   b = 2;
   c = 1;
-  SolveSquare(a, b, c, &x1, &x2, &n_roots);
+  n_roots = SolveSquare(a, b, c, &x1, &x2);
   assert( n_roots == 1 && x1 == -1);
   a = 1;
   b = 2;
   c = 2;
-  SolveSquare(a, b, c, &x1, &x2, &n_roots);
+  n_roots = SolveSquare(a, b, c, &x1, &x2);
   assert( n_roots == 0 );
 }
 
