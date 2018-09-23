@@ -1,41 +1,70 @@
 #include <algorithm>
 #include <iostream>
+#include <cassert>
 
 using std::string;
 using std::vector;
 
-void DirectSort(vector<char *> &strings_starts, const vector<char> &punctuation_marks) {
-  std::sort(strings_starts.begin(), strings_starts.end(), [&punctuation_marks](char *string1, char *string2) -> bool {
-              string str1_no_marks, str2_no_marks;
-              for (char *ch = string1; *ch != '\0'; ch++) {
-                if (!(std::find(punctuation_marks.begin(), punctuation_marks.end(), *ch) ==
-                    punctuation_marks.end())) continue;
-                str1_no_marks.push_back(*ch);
+struct string_limits {
+  char* start = nullptr;
+  size_t length = 0;
+  string_limits(char* start_) : start(start_), length(0) {}
+};
+
+void DirectSort(vector<string_limits> &strings_starts, const vector<char> &punctuation_marks) {
+  std::sort(strings_starts.begin(), strings_starts.end(),
+            [&punctuation_marks](string_limits string1, string_limits string2) -> bool {
+              char *ch1 = string1.start;
+              char *ch2 = string2.start;
+              while (*ch1 != '\0' || *ch2 != '\0') {
+                while ((std::find(punctuation_marks.begin(), punctuation_marks.end(), *ch1)) !=
+                    punctuation_marks.end()) {
+                  ch1++;
+                }
+                while ((std::find(punctuation_marks.begin(), punctuation_marks.end(), *ch2)) !=
+                    punctuation_marks.end()) {
+                  ch2++;
+                }
+                if (*ch1 == *ch2) {
+                  ch1++;
+                  ch2++;
+                  continue;
+                }
+                return *ch1 < *ch2;
               }
-              for (char *ch = string2; *ch != '\0'; ch++) {
-                if (!(std::find(punctuation_marks.begin(), punctuation_marks.end(), *ch) ==
-                    punctuation_marks.end())) continue;
-                str2_no_marks.push_back(*ch);
+              if (*ch1 == '\0') {
+                return true;
               }
-              return str1_no_marks < str2_no_marks;
+              return *ch2 != '\0';
             }
   );
 }
 
-void NonDirectSort(vector<char *> &strings_starts, const vector<char> &punctuation_marks) {
-  std::sort(strings_starts.begin(), strings_starts.end(), [&punctuation_marks](char *string1, char *string2) -> bool {
-              string str1_no_marks, str2_no_marks;
-              for (char *ch = string1; *ch != '\0'; ch++) {
-                if (!(std::find(punctuation_marks.begin(), punctuation_marks.end(), *ch) ==
-                    punctuation_marks.end())) continue;
-                str1_no_marks = *ch + str1_no_marks;
+void NonDirectSort(vector<string_limits> &strings_starts, const vector<char> &punctuation_marks) {
+  std::sort(strings_starts.begin(), strings_starts.end(),
+            [&punctuation_marks](string_limits string1, string_limits string2) -> bool {
+              char *ch1 = string1.start + string1.length;
+              char *ch2 = string2.start + string2.length;
+              while (ch1 != string2.start || ch2 != string1.start) {
+                while ((std::find(punctuation_marks.begin(), punctuation_marks.end(), *ch1)) !=
+                    punctuation_marks.end()) {
+                  ch1--;
+                }
+                while ((std::find(punctuation_marks.begin(), punctuation_marks.end(), *ch2)) !=
+                    punctuation_marks.end()) {
+                  ch2--;
+                }
+                if (*ch1 == *ch2) {
+                  ch1--;
+                  ch2--;
+                  continue;
+                }
+                return *ch1 < *ch2;
               }
-              for (char *ch = string2; *ch != '\0'; ch++) {
-                if (!(std::find(punctuation_marks.begin(), punctuation_marks.end(), *ch) ==
-                    punctuation_marks.end())) continue;
-                str2_no_marks = *ch + str2_no_marks;
+              if (ch1 == string1.start) {
+                return true;
               }
-              return str1_no_marks < str2_no_marks;
+              return ch2 != string2.start;
             }
   );
 }
@@ -47,14 +76,31 @@ size_t GetFileLength(FILE *f) {
   return text_length;
 }
 
-void WriteStrings(FILE* f, vector<char*> &strings_starts) {
+void WriteStrings(FILE* f, vector<string_limits> &strings_starts) {
   for (int i = 0; i < strings_starts.size(); ++i) {
-    fprintf(f, "%s", strings_starts[i]);
+    fprintf(f, "%s", strings_starts[i].start);
     fprintf(f, "%c", '\n');
   }
 }
 
+void TextIndexing ( vector<string_limits> &strings_starts, char *text, size_t text_length){
+  strings_starts.push_back(&text[0]);
+  size_t previous_index = 0;
+  for (size_t i = 1; i < text_length; i++) {
+    if (text[i] == '\n') {
+      text[i] = '\0';
+      strings_starts.back().length = i - previous_index;
+      if (text[i + 1] != '\n') {
+        strings_starts.push_back(&text[i + 1]);
+        previous_index = i + 1;
+      }
+    }
+  }
+}
+
 int main() {
+
+  setlocale(LC_ALL, "Russian");
 
   FILE *f_read = fopen("EugeneOnegin.txt", "r");
   if (f_read == NULL) {
@@ -69,26 +115,17 @@ int main() {
   }
 
   size_t text_length = GetFileLength(f_read);
-  char *text = new char[text_length + 1] {};
+  char *text = new char[text_length + 1];
   fread(text, sizeof(char), text_length, f_read);
   text[text_length] = '\0';
 
   fclose(f_read);
-  vector<char *> strings_starts;
-  strings_starts.push_back(&text[0]);
-  for (size_t i = 1; i < text_length; i++) {
-    if (text[i] == '\n') {
-      text[i] = '\0';
-      if (text[i + 1] != '\n') {
-        strings_starts.push_back(&text[i + 1]);
-      }
-    }
-  }
 
-  vector<char *> first_strings_starts(strings_starts);
+  vector<string_limits> strings_starts;
+  TextIndexing(strings_starts, text, text_length);
 
-  const vector<char> punctuation_marks({'.', ',', '?', '!', ' ', ':', ';', '-', '(', ')', '<', '>'});
-  WriteStrings(f_write, strings_starts);
+  vector<char> punctuation_marks({' ', '.', ',', '?', '!', ':', ';', '-', '(', ')', '<', '>'});
+
   DirectSort(strings_starts, punctuation_marks);
 
   fprintf(f_write, "%s", "Результат стандартной сортировки строк, с сравнением с начала строки:\n\n");
@@ -106,7 +143,8 @@ int main() {
   }
 
   fprintf(f_write, "%s", "\n\nОригинальный текст:\n\n");
-  WriteStrings(f_write, first_strings_starts);
+  fprintf(f_write, "%s", text);
+  fprintf(f_write, "%c", '\n');
 
   fclose(f_write);
 
