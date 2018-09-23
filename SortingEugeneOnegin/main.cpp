@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <iostream>
-#include <cassert>
 
 using std::string;
 using std::vector;
